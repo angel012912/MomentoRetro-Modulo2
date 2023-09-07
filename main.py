@@ -27,7 +27,7 @@ df = df.dropna()
 """
 Se hacen subconjuntos de los datos para separar las variables independientes de la variable dependiente.
     - Se separan las variables independientes en X y la variable dependiente en y.
-    - Se separan los datos en datos de entrenamiento y datos de prueba.
+    - Se separan los datos en datos de entrenamiento, validación y datos de prueba.
 """
 
 X = df.drop('brand', axis=1)
@@ -35,6 +35,8 @@ y = df['brand']
 
 
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=0.2, random_state=42)
+
 
 """
 Se crea el modelo de Random Forest con los siguientes hiper parámetros:
@@ -54,28 +56,41 @@ model.fit(X_train, y_train)
 
 
 """
-Se evalua el desempeño del modelo:
-- Se evalua la precisión del modelo.
-- Se evalua el reporte de clasificación, el cual muestra la precisión, el recall y el f1-score de cada clase.
-- Se evalua la matriz de confusión, la cual muestra los valores predichos y los valores reales.
-    - Se utiliza la libreria seaborn para mostrar la matriz de confusión de una manera más visual.
+Se evalua el desempeño del modelo con los datos de validación y de prueba: 
+- Se evalua la precisión del modelo con los datos de validación y de prueba.
+- Se evalua el reporte de clasificación, tanto para los datos de validación como con los de prueba, el cual muestra la precisión, el recall y el f1-score de cada clase.
+- Se evalua la matriz de confusión, tanto para los datos de validación como con los de prueba, la cual muestra los valores predichos y los valores reales.
+- Se grafica la matriz de confusión para los datos de validación y de prueba en un mismo plot.
+- Se grafica los desempeños del modelo con los datos de train, validación y prueba en un gráfico de barras.
 """
-y_pred = model.predict(X_test)
-print("Precisión: ",accuracy_score(y_test, y_pred), "\n")
-print("Reporte de clasificación: \n",classification_report(y_test,y_pred))
+y_pred_val = model.predict(X_val)
+y_pred_test = model.predict(X_test)
+
+print("***** Datos de validación ******")
+print("Precisión de los datos de validación: ", accuracy_score(y_val, y_pred_val))
+print("Reporte de clasificación de los datos de validación: \n", classification_report(y_val, y_pred_val))
+
+print("***** Datos de prueba ******")
+print("Precisión de los datos de prueba: ", accuracy_score(y_test, y_pred_test))
+print("Reporte de clasificación de los datos de prueba: \n", classification_report(y_test, y_pred_test))
+
+cm_val = confusion_matrix(y_val, y_pred_val)
+cm_test = confusion_matrix(y_test, y_pred_test)
+
+fig, ax = plt.subplots(1, 2, figsize=(15, 5))
+sns.heatmap(cm_val, annot=True, ax=ax[0], cmap=plt.cm.Blues, fmt='g')
+sns.heatmap(cm_test, annot=True, ax=ax[1], cmap=plt.cm.Blues, fmt='g')
+ax[0].set_title('Matriz de confusión validación')
+ax[1].set_title('Matriz de confusión prueba')
+ax[0].set_xlabel('Predicciones')
+ax[1].set_xlabel('Predicciones')
+ax[0].set_ylabel('Valores esperados')
+ax[1].set_ylabel('Valores esperados')
+plt.show()
 
 
-matriz_confusion = confusion_matrix(y_test, y_pred)
-
-data_etiquetada = pd.DataFrame(columns=["Europe","Japan", "Us"], index=["Europe","Japan", "Us"], data= matriz_confusion )
-
-f,ax = plt.subplots(figsize=(2,2))
-
-sns.heatmap(data_etiquetada, annot=True, cmap="Greens", fmt= '.0f',
-            ax=ax,linewidths = 5, cbar = False,annot_kws={"size": 14})
-plt.xlabel("Valores Predichos")
-plt.xticks(size = 10)
-plt.yticks(size = 10, rotation = 0)
-plt.ylabel("Valores Reales")
-plt.title("Matriz de confusión", size = 10)
+plt.bar(['Entrenamiento', 'Validación', 'Prueba'], [accuracy_score(y_train, model.predict(X_train)), accuracy_score(y_val, y_pred_val), accuracy_score(y_test, y_pred_test)], color=['blue', 'orange', 'green'])
+plt.title('Precisión del modelo con los datos de entrenamiento, validación y prueba')
+plt.xlabel('Datos')
+plt.ylabel('Precisión')
 plt.show()
